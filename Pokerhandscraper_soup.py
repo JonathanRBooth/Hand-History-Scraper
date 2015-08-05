@@ -1,56 +1,87 @@
-#Poker hand history scraper
-
 import requests
 from bs4 import BeautifulSoup
 import time
 import os
 import sys
+import threading
 
-#Program run timer start
-timestart = time.time() 
+#Multi-threaded Hand History Scraper V2.2
 
-#File number x to first write to: "HH - x.txt"
-filenumber = 1 
+#Contact me if you encounter significant connection errors or large numbers of attribute errors being logged.
 
-for i in range(1,5000000):
+#Try to keep usage responsible as this script will pull data as quickly as possible and may cause the data host to be unhappy if overused.
 
-    #Input url of HH records with %s in place of hand number
-    url = "https://randompokerwebsite/flashclient/gamehistory.php?handnumber=%s" %(i)
+#If the total time running is greater than 0.2 seconds per hand either the connection is poor or you have been throttled by the site and should cease use immediately.  
 
-    page = requests.get(url).content
+timestart = time.time()
 
-    soup = BeautifulSoup(page)
+def scrape(start,end,fileletter):
+    filenumber = 1
+    for i in range(start,end):
 
-    try:
-        textblock = soup.find("div",{"id":"div_urlcodes"})
+        try:
 
-        textblock2 = textblock.find("textarea",{"id":"txt_handhistory"})
-        textblock2 = str(textblock2)
-        textblock2 = textblock2.replace("""<textarea id="txt_handhistory" name="txt_handhistory" style="width:233px;height:50px;">""","")
-        textblock2 = textblock2.replace("&lt;br&gt;","<br>")
-        textblock2 = textblock2.replace("</textarea>","")
+            url = "https://anyrandompokernetwork.com/flashclient/gamehistory.php?gnr=%s&key=&nick=&note=" %(i)
 
-    except AttributeError:
-        print "Hand", i, "not processed due to error"
-        File = open("Error Log.txt", 'a')
-        File.write("Hand %s not processed due to error"%(str(i)))
-        File.write("\n")
+            page = requests.get(url).content
+
+            soup = BeautifulSoup(page, "lxml")
+
+       
+            textblock = soup.find("div",{"id":"div_urlcodes"})
+
+            textblock2 = textblock.find("textarea",{"id":"txt_handhistory"})
+            textblock2 = str(textblock2)
+            textblock2 = textblock2.replace("""<textarea id="txt_handhistory" name="txt_handhistory" style="width:233px;height:50px;">""","")
+            textblock2 = textblock2.replace("&lt;br&gt;","<br>")
+            textblock2 = textblock2.replace("</textarea>","")
+
+        except AttributeError:
+            print "Hand", i, "not processed due to error"
+            File = open("Error Log.txt", 'a')
+            File.write("Hand %s not processed due to error"%(str(i)))
+            File.write("\n")
+            File.close()
+            pass
+
+        except "ConnectionError":
+            print "ConnectionError"
+            time.sleep(30)
+            pass
+
+        File = open("HH - %s%s.txt"%(fileletter,filenumber), 'a')
+        if os.path.getsize("C:\Users\Desktop\Python\Betuniq Soup Scraper\HH 1\HH - %s%s.txt" %(fileletter,filenumber)) > 10000000:
+            filenumber = filenumber + 1
+            File = open("HH - %s%s.txt" %(fileletter,filenumber), 'a')
+            File.close()
+
+        File = open("HH - %s%s.txt" %(fileletter,filenumber), 'a')
+        File.write(textblock2)
+        File.write("\n\n")
         File.close()
-        pass
 
-    #If saved file is > than ~10MB, create file n + 1 and write to that instead
-    if os.path.getsize("C:\Users\Desktop\HH - %s.txt" %(filenumber)) > 10000000:
-        filenumber = filenumber + 1
+        print "Hand Number", i, "Processed"
+        
+    timeend = time.time()
 
-    File = open("HH - %s.txt"%(filenumber), 'a')
-    File.write(textblock2)
-    File.write("\n\n")
-    File.close()
+    print "Total Time Running =", timeend - timestart, "Seconds."
 
-    print "Hand Number", i, "Processed"
+#Enter start/end page numbers for each thread (Leave the 3rd arg alone).
     
-timeend = time.time()
+#Feel free to add more threads if you feel you need to quickly expand the scope of data scraped.
 
-print "Total Time Running =", timeend - timestart, "Seconds."
+#I would suggest each thread having a range of no more than 1000.  
+
+t1 = threading.Thread(target=scrape, args=(1,1001,"A")) 
+t2 = threading.Thread(target=scrape, args=(1001,2001,"B"))
+t3 = threading.Thread(target=scrape, args=(2001,3001,"C"))
+t4 = threading.Thread(target=scrape, args=(3001,4001,"D"))
+t5 = threading.Thread(target=scrape, args=(4001,5001,"E"))
+
+t1.start()
+t2.start()
+t3.start()
+t4.start()
+t5.start()
 
 raw_input()
